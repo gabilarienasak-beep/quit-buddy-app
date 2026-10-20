@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>QuitBuddy - Beat Cravings Together</title>
     <!-- PWA & Mobile Meta -->
-    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,9 +18,9 @@
         }
         .glow-btn { animation: pulse-glow 3s infinite ease-in-out; }
         .glass-card {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
     </style>
 </head>
@@ -43,7 +44,7 @@
     <!-- Main Container -->
     <main id="app-state" class="flex-1 flex flex-col justify-center items-center my-4 w-full max-w-md mx-auto">
         
-        <!-- State 1: Default Panic Button & Intensity Selector -->
+        <!-- State 1: Default Panic Button -->
         <div id="idle-screen" class="text-center w-full flex flex-col items-center">
             
             <!-- Intensity Selector -->
@@ -63,6 +64,11 @@
                 <span class="tracking-wider">CRAVING</span>
             </button>
             <p class="text-[11px] text-slate-400 mt-6 max-w-xs leading-relaxed">Tap to pair anonymously with a buddy and crush your craving in a 5-minute session.</p>
+
+            <!-- Install App Button (PWA) -->
+            <button id="install-btn" class="hidden mt-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-teal-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">
+                📲 Install App to Home Screen
+            </button>
         </div>
 
         <!-- State 2: Waiting Queue + Bubble Popper Arcade -->
@@ -78,7 +84,7 @@
                 <p class="text-xs text-slate-300 mb-3 font-medium">Pop the bubbles while waiting to release tension!</p>
                 
                 <!-- Bubble Pop Game Area -->
-                <div id="bubble-container" class="relative w-full h-44 bg-slate-900/80 rounded-xl overflow-hidden border border-slate-800 flex flex-wrap p-2 gap-3 justify-center items-center">
+                <div id="bubble-container" class="relative w-full h-48 bg-slate-900/80 rounded-xl overflow-hidden border border-slate-800 flex flex-wrap p-2 gap-3 justify-center items-center">
                     <!-- Dynamic Bubbles Render Here -->
                 </div>
             </div>
@@ -118,13 +124,55 @@
         let selectedLevel = 'Mild';
         let queueSeconds = 0;
         let queueInterval = null;
+        let audioCtx = null;
+
+        // Initialize Web Audio Synthesizer
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        // Synthesize Pop Sound
+        function playPopSound() {
+            initAudio();
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        }
+
+        // Synthesize Match Chime
+        function playMatchSound() {
+            initAudio();
+            if (!audioCtx) return;
+            const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+            notes.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.1);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.1 + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + i * 0.1);
+                osc.stop(audioCtx.currentTime + i * 0.1 + 0.2);
+            });
+        }
 
         // Trigger phone haptic vibration
         function triggerHaptic(ms = 40) {
             if (navigator.vibrate) navigator.vibrate(ms);
         }
 
-        // Intensity selector logic
+        // Intensity selector
         function selectIntensity(btn, level) {
             triggerHaptic(20);
             selectedLevel = level;
@@ -142,6 +190,7 @@
         // Panic Button Trigger
         document.getElementById('panic-btn').onclick = () => {
             triggerHaptic([60, 40, 60]);
+            playPopSound();
             document.getElementById('idle-screen').classList.add('hidden');
             document.getElementById('waiting-screen').classList.remove('hidden');
             socket.emit('find_buddy', { level: selectedLevel });
@@ -151,6 +200,7 @@
 
         socket.on('matched', (data) => {
             triggerHaptic([100, 50, 100]);
+            playMatchSound();
             clearInterval(queueInterval);
             currentRoom = data.roomId;
             document.getElementById('waiting-screen').classList.add('hidden');
@@ -165,6 +215,7 @@
             const input = document.getElementById('msg-input');
             if (input.value.trim() && currentRoom) {
                 triggerHaptic(20);
+                playPopSound();
                 appendMsg('You: ' + input.value, 'text-teal-200 text-right bg-teal-950/60 border border-teal-800/50 ml-auto max-w-[85%]');
                 socket.emit('send_message', { roomId: currentRoom, message: input.value });
                 input.value = '';
@@ -173,6 +224,7 @@
 
         socket.on('receive_message', (msg) => {
             triggerHaptic(30);
+            playMatchSound();
             appendMsg('Buddy: ' + msg, 'text-slate-200 text-left bg-slate-800/80 border border-slate-700/60 mr-auto max-w-[85%]');
         });
 
@@ -208,7 +260,7 @@
             queueInterval = setInterval(() => {
                 queueSeconds++;
                 let m = Math.floor(queueSeconds / 60);
-                let s = queueSeconds % 60;
+                let s = seconds = queueSeconds % 60;
                 el.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             }, 1000);
         }
@@ -231,6 +283,7 @@
             
             b.onclick = () => {
                 triggerHaptic(25);
+                playPopSound();
                 b.style.transform = 'scale(0)';
                 b.style.opacity = '0';
                 setTimeout(() => {
@@ -240,6 +293,19 @@
             };
             container.appendChild(b);
         }
+
+        // PWA Install Prompt Listener
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('install-btn');
+            installBtn.classList.remove('hidden');
+            installBtn.onclick = () => {
+                installBtn.classList.add('hidden');
+                deferredPrompt.prompt();
+            };
+        });
     </script>
 </body>
 </html>
