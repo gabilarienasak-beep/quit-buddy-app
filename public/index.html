@@ -77,7 +77,7 @@
             </button>
         </div>
 
-        <!-- State 2: Standalone / Queue Virtual Smoke Break -->
+        <!-- State 2: Standalone Virtual Smoke Break -->
         <div id="sim-screen" class="hidden text-center flex flex-col items-center w-full glass-card p-4 rounded-2xl border border-slate-700/80">
             <div class="flex justify-between items-center w-full pb-3 border-b border-slate-800">
                 <span class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
@@ -88,29 +88,23 @@
 
             <p class="text-[11px] text-slate-300 my-2 font-medium">Hold button to INHALE (glow) • Release to EXHALE (smoke)</p>
 
-            <!-- Canvas Graphic Area -->
             <div id="sim-area" class="relative w-full h-60 bg-slate-900/90 rounded-xl overflow-hidden my-2 border border-slate-800 flex flex-col justify-between items-center p-3">
                 <canvas id="smoke-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
 
-                <!-- Cigarette Graphic -->
                 <div class="relative z-10 w-full flex justify-center items-center mt-6">
                     <div class="flex items-center h-10 shadow-2xl transition-all duration-300" id="cigarette-body">
-                        <!-- Filter -->
                         <div class="w-12 h-8 bg-amber-700 rounded-l-md border-r border-amber-900 flex items-center justify-center">
                             <div class="w-full h-1 bg-amber-600/30"></div>
                         </div>
-                        <!-- Paper Body -->
                         <div class="h-8 bg-slate-100 border-t border-b border-slate-300 flex-1 relative overflow-hidden transition-all duration-300" id="tobacco-paper">
                             <div class="absolute inset-0 bg-gradient-to-r from-slate-200 to-slate-100"></div>
                         </div>
-                        <!-- Burning Tip / Ember -->
                         <div class="w-3 h-8 bg-amber-900 rounded-r-sm relative flex items-center justify-center transition-all duration-150" id="ember-tip">
                             <div class="w-2 h-6 bg-orange-600 rounded-full transition-all duration-150 shadow-lg" id="ember-glow"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Hold-to-Inhale Control Button -->
                 <button id="hold-trigger" class="relative z-20 w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 active:from-amber-500 active:to-rose-500 font-black text-xs tracking-wider uppercase shadow-xl transition-all border border-amber-400/30">
                     🔥 HOLD TO INHALE
                 </button>
@@ -127,18 +121,15 @@
                     <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono" id="queue-timer">00:00</span>
                 </div>
 
-                <!-- Mini Tab Switcher in Queue -->
                 <div class="flex gap-2 mb-3">
                     <button id="q-tab-bubbles" onclick="switchQueueTab('bubbles')" class="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/40">🫧 Pop Bubbles</button>
                     <button id="q-tab-smoke" onclick="switchQueueTab('smoke')" class="flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-slate-800 text-slate-400 border border-slate-700">🚬 Virtual Smoke</button>
                 </div>
 
-                <!-- Queue Tab 1: Bubble Popper -->
                 <div id="q-view-bubbles" class="w-full">
                     <div id="bubble-container" class="relative w-full h-44 bg-slate-900/80 rounded-xl overflow-hidden border border-slate-800 flex flex-wrap p-2 gap-3 justify-center items-center"></div>
                 </div>
 
-                <!-- Queue Tab 2: Embedded Virtual Smoke -->
                 <div id="q-view-smoke" class="hidden w-full">
                     <div class="relative w-full h-44 bg-slate-900/90 rounded-xl overflow-hidden border border-slate-800 flex flex-col justify-between items-center p-2">
                         <canvas id="q-smoke-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
@@ -161,21 +152,52 @@
             </div>
         </div>
 
-        <!-- State 4: Active Anonymous Chat -->
-        <div id="chat-screen" class="hidden w-full glass-card rounded-2xl p-4 flex flex-col h-[65vh] shadow-2xl border border-slate-700/80">
-            <div class="flex justify-between items-center pb-3 border-b border-slate-700/80 text-xs font-bold">
+        <!-- State 4: Active Anonymous Chat + Shared Cigarette & Icebreaker Chips -->
+        <div id="chat-screen" class="hidden w-full glass-card rounded-2xl p-3.5 flex flex-col h-[75vh] shadow-2xl border border-slate-700/80">
+            
+            <!-- Chat Header -->
+            <div class="flex justify-between items-center pb-2 border-b border-slate-700/80 text-xs font-bold">
                 <span class="text-emerald-400 flex items-center gap-1.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                     Connected to Buddy
                 </span>
-                <span id="timer" class="bg-slate-900 text-teal-400 border border-teal-500/30 px-2.5 py-1 rounded-lg font-mono text-xs">05:00</span>
+                <span id="timer" class="bg-slate-900 text-teal-400 border border-teal-500/30 px-2.5 py-0.5 rounded-lg font-mono text-xs">05:00</span>
+            </div>
+
+            <!-- Shared Synchronized Cigarette Simulation inside Chat -->
+            <div class="my-2 p-2 bg-slate-900/90 rounded-xl border border-amber-500/20 relative overflow-hidden flex flex-col items-center">
+                <canvas id="chat-smoke-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                <div class="text-[10px] text-amber-400/90 font-bold mb-1 flex items-center gap-1">
+                    <span>🚬 Shared Smoke Break</span>
+                    <span id="buddy-status" class="text-[9px] text-slate-400 font-normal ml-2"></span>
+                </div>
+
+                <div class="flex items-center h-6 shadow-md w-2/3 my-1">
+                    <div class="w-6 h-5 bg-amber-700 rounded-l-md border-r border-amber-900"></div>
+                    <div class="h-5 bg-slate-100 flex-1 relative overflow-hidden" id="chat-paper"><div class="absolute inset-0 bg-slate-200"></div></div>
+                    <div class="w-2 h-5 bg-amber-900 rounded-r-sm flex items-center justify-center">
+                        <div class="w-1.5 h-3 bg-orange-600 rounded-full transition-all duration-150" id="chat-ember"></div>
+                    </div>
+                </div>
+
+                <button id="chat-hold-trigger" class="relative z-10 w-full py-1.5 mt-1 rounded-lg bg-amber-600/90 hover:bg-amber-500 font-bold text-[10px] tracking-wider uppercase border border-amber-400/30 active:scale-98 transition-all">
+                    🔥 Hold to Inhale Together
+                </button>
             </div>
 
             <!-- Messages Area -->
-            <div id="messages" class="flex-1 overflow-y-auto my-3 space-y-2 text-xs pr-1"></div>
+            <div id="messages" class="flex-1 overflow-y-auto my-1 space-y-2 text-xs pr-1"></div>
+
+            <!-- Icebreaker Prompts Row -->
+            <div class="flex gap-1.5 overflow-x-auto py-1.5 no-scrollbar text-[10px]">
+                <button onclick="sendIcebreaker('What triggered your craving today? ⚡')" class="whitespace-nowrap bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-full active:scale-95 transition-all">⚡ Craving Trigger?</button>
+                <button onclick="sendIcebreaker('How many days smoke-free are you? 🏆')" class="whitespace-nowrap bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-full active:scale-95 transition-all">🏆 Smoke-Free Days?</button>
+                <button onclick="sendIcebreaker('What food are you craving right now? 🍕')" class="whitespace-nowrap bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-full active:scale-95 transition-all">🍕 Favorite Food?</button>
+                <button onclick="sendIcebreaker('What song are you listening to right now? 🎵')" class="whitespace-nowrap bg-slate-800/80 hover:bg-teal-900/50 text-slate-300 border border-slate-700/80 px-2.5 py-1 rounded-full active:scale-95 transition-all">🎵 Current Song?</button>
+            </div>
 
             <!-- Input Area -->
-            <div class="flex gap-2 pt-2 border-t border-slate-700/80">
+            <div class="flex gap-2 pt-1 border-t border-slate-700/80">
                 <input id="msg-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-900 text-slate-100 px-3.5 py-2.5 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-400 border border-slate-700">
                 <button id="send-btn" class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-xs active:scale-95 transition-all shadow-md">Send</button>
             </div>
@@ -201,7 +223,6 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
         }
 
-        // Crackling Ember Sound Effect
         function startCrackleSound() {
             initAudio();
             if (!audioCtx || crackleNode) return;
@@ -211,7 +232,6 @@
             const data = buffer.getChannelData(0);
 
             for (let i = 0; i < bufferSize; i++) {
-                // White noise base mixed with crackle spikes
                 const white = Math.random() * 2 - 1;
                 const spike = Math.random() > 0.985 ? (Math.random() * 3 - 1.5) : 0;
                 data[i] = white * 0.05 + spike * 0.4;
@@ -329,7 +349,14 @@
             document.getElementById('sim-screen').classList.add('hidden');
             document.getElementById('chat-screen').classList.remove('hidden');
             startTimer();
+            initSimEngine('chat-smoke-canvas', 'chat-hold-trigger', 'chat-ember', 'chat-paper', true);
         });
+
+        function sendIcebreaker(text) {
+            const input = document.getElementById('msg-input');
+            input.value = text;
+            sendMessage();
+        }
 
         document.getElementById('send-btn').onclick = sendMessage;
         document.getElementById('msg-input').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
@@ -349,10 +376,31 @@
             appendMsg('Buddy: ' + msg, 'text-slate-200 text-left bg-slate-800/80 border border-slate-700/60 mr-auto max-w-[85%]');
         });
 
+        // Real-Time Shared Inhale Events
+        socket.on('buddy_inhale_start', () => {
+            const glow = document.getElementById('chat-ember');
+            const status = document.getElementById('buddy-status');
+            if (glow) {
+                glow.style.transform = 'scale(1.5)';
+                glow.style.backgroundColor = '#ff2200';
+            }
+            if (status) status.innerText = '(Buddy is inhaling...)';
+        });
+
+        socket.on('buddy_inhale_stop', () => {
+            const glow = document.getElementById('chat-ember');
+            const status = document.getElementById('buddy-status');
+            if (glow) {
+                glow.style.transform = 'scale(1)';
+                glow.style.backgroundColor = '#ea580c';
+            }
+            if (status) status.innerText = '';
+        });
+
         function appendMsg(msg, style) {
             const box = document.getElementById('messages');
             const p = document.createElement('div');
-            p.className = style + ' p-3 rounded-2xl text-xs font-medium my-1 shadow-sm';
+            p.className = style + ' p-2.5 rounded-xl text-xs font-medium my-1 shadow-sm';
             p.innerText = msg;
             box.appendChild(p);
             box.scrollTop = box.scrollHeight;
@@ -405,8 +453,8 @@
             container.appendChild(b);
         }
 
-        // Universal Virtual Smoke Engine with Web Audio burning crackle
-        function initSimEngine(canvasId, triggerId, emberId, paperId) {
+        // Universal Virtual Smoke Engine with Web Audio & Socket Syncing
+        function initSimEngine(canvasId, triggerId, emberId, paperId, syncSocket = false) {
             const canvas = document.getElementById(canvasId);
             const ctx = canvas.getContext('2d');
             canvas.width = canvas.offsetWidth;
@@ -422,12 +470,14 @@
                 isHolding = true; 
                 triggerHaptic(30); 
                 startCrackleSound();
+                if (syncSocket && currentRoom) socket.emit('inhale_start', { roomId: currentRoom });
             };
             
             window.onmouseup = window.ontouchend = () => { 
                 if (isHolding) {
                     stopCrackleSound();
                     triggerExhaleCloud(canvas, particles); 
+                    if (syncSocket && currentRoom) socket.emit('inhale_stop', { roomId: currentRoom });
                 }
                 isHolding = false; 
             };
@@ -442,8 +492,10 @@
                     glow.style.backgroundColor = '#ff2200';
                     if (width > 10 && paper) { width -= 0.08; paper.style.width = width + '%'; }
                 } else {
-                    glow.style.transform = 'scale(1)';
-                    glow.style.backgroundColor = '#ea580c';
+                    if (!syncSocket) {
+                        glow.style.transform = 'scale(1)';
+                        glow.style.backgroundColor = '#ea580c';
+                    }
                 }
 
                 particles.forEach((p, idx) => {
