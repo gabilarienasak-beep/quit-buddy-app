@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuitBuddy - 5 Min Craving Distraction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-slate-900 text-white flex flex-col justify-between min-h-screen p-4 font-sans">
+
+    <!-- Header -->
+    <header class="text-center mt-4">
+        <h1 class="text-2xl font-extrabold text-teal-400">QuitBuddy</h1>
+        <p class="text-xs text-slate-400">Beat the craving in 5 minutes together</p>
+    </header>
+
+    <!-- Main Container -->
+    <main id="app-state" class="flex-1 flex flex-col justify-center items-center my-6">
+        
+        <!-- State 1: Default Panic Button -->
+        <div id="idle-screen" class="text-center">
+            <button id="panic-btn" class="w-48 h-48 rounded-full bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-900/50 flex flex-col justify-center items-center text-white font-bold text-lg active:scale-95 transition-all border-4 border-rose-400">
+                <span class="text-2xl">⚡</span>
+                <span>I HAVE A</span>
+                <span>CRAVING</span>
+            </button>
+            <p class="text-xs text-slate-400 mt-6">Tap to pair with someone facing a craving right now.</p>
+        </div>
+
+        <!-- State 2: Waiting -->
+        <div id="waiting-screen" class="hidden text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-400 mx-auto mb-4"></div>
+            <p class="text-sm font-semibold">Finding you a Quit Buddy...</p>
+            <p class="text-xs text-slate-500 mt-2">Hang tight! Deep breaths.</p>
+        </div>
+
+        <!-- State 3: Active Anonymous Chat -->
+        <div id="chat-screen" class="hidden w-full max-w-md bg-slate-800 rounded-xl p-4 flex flex-col h-[60vh] border border-slate-700">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-700 text-xs text-teal-400 font-bold">
+                <span>🟢 Connected to Buddy</span>
+                <span id="timer">05:00</span>
+            </div>
+            <div id="messages" class="flex-1 overflow-y-auto my-2 space-y-2 text-sm"></div>
+            <div class="flex gap-2">
+                <input id="msg-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none">
+                <button id="send-btn" class="bg-teal-500 text-slate-900 font-bold px-4 py-2 rounded-lg text-sm">Send</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-[10px] text-slate-600">
+        100% Anonymous • Auto-deletes after 5 minutes
+    </footer>
+
+    <script>
+        const socket = io();
+        let currentRoom = null;
+
+        document.getElementById('panic-btn').onclick = () => {
+            document.getElementById('idle-screen').classList.add('hidden');
+            document.getElementById('waiting-screen').classList.remove('hidden');
+            socket.emit('find_buddy');
+        };
+
+        socket.on('waiting', () => {
+            // Stay on waiting screen
+        });
+
+        socket.on('matched', (data) => {
+            currentRoom = data.roomId;
+            document.getElementById('waiting-screen').classList.add('hidden');
+            document.getElementById('chat-screen').classList.remove('hidden');
+            startTimer();
+        });
+
+        document.getElementById('send-btn').onclick = sendMessage;
+        function sendMessage() {
+            const input = document.getElementById('msg-input');
+            if (input.value.trim() && currentRoom) {
+                appendMsg('You: ' + input.value, 'text-teal-300 text-right');
+                socket.emit('send_message', { roomId: currentRoom, message: input.value });
+                input.value = '';
+            }
+        }
+
+        socket.on('receive_message', (msg) => {
+            appendMsg('Buddy: ' + msg, 'text-slate-200 text-left');
+        });
+
+        function appendMsg(msg, style) {
+            const box = document.getElementById('messages');
+            const p = document.createElement('p');
+            p.className = style + ' bg-slate-700/50 p-2 rounded-lg';
+            p.innerText = msg;
+            box.appendChild(p);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function startTimer() {
+            let seconds = 300;
+            const timerEl = document.getElementById('timer');
+            const interval = setInterval(() => {
+                seconds--;
+                let m = Math.floor(seconds / 60);
+                let s = seconds % 60;
+                timerEl.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    alert("5 minutes up! Craving defeated.");
+                    location.reload();
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
