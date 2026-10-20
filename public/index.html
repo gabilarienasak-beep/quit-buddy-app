@@ -194,8 +194,59 @@
         let currentRoom = null;
         let queueSeconds = 0, queueInterval = null;
         let audioCtx = null;
+        let crackleNode = null;
 
-        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        function initAudio() { 
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // Crackling Ember Sound Effect
+        function startCrackleSound() {
+            initAudio();
+            if (!audioCtx || crackleNode) return;
+
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < bufferSize; i++) {
+                // White noise base mixed with crackle spikes
+                const white = Math.random() * 2 - 1;
+                const spike = Math.random() > 0.985 ? (Math.random() * 3 - 1.5) : 0;
+                data[i] = white * 0.05 + spike * 0.4;
+            }
+
+            const noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = buffer;
+            noiseSource.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 1200;
+            filter.Q.value = 3.0;
+
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+
+            noiseSource.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            noiseSource.start();
+            crackleNode = { noiseSource, gain };
+        }
+
+        function stopCrackleSound() {
+            if (crackleNode && audioCtx) {
+                crackleNode.gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                setTimeout(() => {
+                    try { crackleNode.noiseSource.stop(); } catch(e){}
+                    crackleNode = null;
+                }, 50);
+            }
+        }
+
         function playPopSound() {
             initAudio(); if (!audioCtx) return;
             const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
@@ -206,6 +257,7 @@
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.08);
         }
+
         function playMatchSound() {
             initAudio(); if (!audioCtx) return;
             [523.25, 659.25, 783.99].forEach((freq, i) => {
@@ -241,6 +293,7 @@
         }
 
         function exitSim() {
+            stopCrackleSound();
             document.getElementById('sim-screen').classList.add('hidden');
             document.getElementById('idle-screen').classList.remove('hidden');
         }
@@ -253,6 +306,7 @@
             const viewS = document.getElementById('q-view-smoke');
 
             if (tab === 'bubbles') {
+                stopCrackleSound();
                 btnB.className = 'flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/40';
                 btnS.className = 'flex-1 py-1.5 text-[11px] font-bold rounded-lg bg-slate-800 text-slate-400 border border-slate-700';
                 viewB.classList.remove('hidden');
@@ -267,6 +321,7 @@
         }
 
         socket.on('matched', (data) => {
+            stopCrackleSound();
             triggerHaptic([100, 50, 100]); playMatchSound();
             clearInterval(queueInterval);
             currentRoom = data.roomId;
@@ -350,8 +405,7 @@
             container.appendChild(b);
         }
 
-        // Universal Virtual Smoke Engine
-        let activeSims = {};
+        // Universal Virtual Smoke Engine with Web Audio burning crackle
         function initSimEngine(canvasId, triggerId, emberId, paperId) {
             const canvas = document.getElementById(canvasId);
             const ctx = canvas.getContext('2d');
@@ -363,8 +417,20 @@
             let width = 100;
 
             const btn = document.getElementById(triggerId);
-            btn.onmousedown = btn.ontouchstart = (e) => { e.preventDefault(); isHolding = true; triggerHaptic(30); };
-            window.onmouseup = window.ontouchend = () => { if (isHolding) triggerExhaleCloud(canvas, particles); isHolding = false; };
+            btn.onmousedown = btn.ontouchstart = (e) => { 
+                e.preventDefault(); 
+                isHolding = true; 
+                triggerHaptic(30); 
+                startCrackleSound();
+            };
+            
+            window.onmouseup = window.ontouchend = () => { 
+                if (isHolding) {
+                    stopCrackleSound();
+                    triggerExhaleCloud(canvas, particles); 
+                }
+                isHolding = false; 
+            };
 
             function loop() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -411,3 +477,4 @@
     </script>
 </body>
 </html>
+          
