@@ -6,8 +6,12 @@ const io = require('socket.io')(http);
 app.use(express.static('public'));
 
 let waitingQueue = [];
+let onlineUsers = 0;
 
 io.on('connection', (socket) => {
+    onlineUsers++;
+    io.emit('online_count', onlineUsers);
+
     socket.on('find_buddy', () => {
         if (waitingQueue.length > 0) {
             let buddySocket = waitingQueue.pop();
@@ -32,9 +36,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        onlineUsers = Math.max(0, onlineUsers - 1);
+        io.emit('online_count', onlineUsers);
         waitingQueue = waitingQueue.filter(s => s.id !== socket.id);
     });
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log(`QuitBuddy running on http://localhost:${PORT}`));
+http.listen(PORT, () => console.log(`QuitBuddy running on port ${PORT}`));
