@@ -3,16 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuitBuddy - 5 Min Craving Distraction</title>
+    <title>QuitBuddy - Beat the Craving Together</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .breathe-animation {
+            animation: pulse-ring 8s infinite ease-in-out;
+        }
+    </style>
 </head>
 <body class="bg-slate-900 text-white flex flex-col justify-between min-h-screen p-4 font-sans">
 
     <!-- Header -->
-    <header class="text-center mt-4">
-        <h1 class="text-2xl font-extrabold text-teal-400">QuitBuddy</h1>
+    <header class="text-center mt-2">
+        <h1 class="text-2xl font-extrabold text-teal-400 tracking-wide">QuitBuddy</h1>
         <p class="text-xs text-slate-400">Beat the craving in 5 minutes together</p>
+        
+        <!-- Live Online Counter Badge -->
+        <div class="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-full px-3 py-1 mt-3">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-[11px] text-slate-300 font-medium" id="online-users">1 user online</span>
+        </div>
     </header>
 
     <!-- Main Container -->
@@ -20,54 +36,62 @@
         
         <!-- State 1: Default Panic Button -->
         <div id="idle-screen" class="text-center">
-            <button id="panic-btn" class="w-48 h-48 rounded-full bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-900/50 flex flex-col justify-center items-center text-white font-bold text-lg active:scale-95 transition-all border-4 border-rose-400">
-                <span class="text-2xl">⚡</span>
+            <button id="panic-btn" class="w-48 h-48 rounded-full bg-rose-600 hover:bg-rose-500 shadow-xl shadow-rose-950/60 flex flex-col justify-center items-center text-white font-bold text-lg active:scale-95 transition-all border-4 border-rose-400">
+                <span class="text-3xl mb-1">⚡</span>
                 <span>I HAVE A</span>
                 <span>CRAVING</span>
             </button>
-            <p class="text-xs text-slate-400 mt-6">Tap to pair with someone facing a craving right now.</p>
+            <p class="text-xs text-slate-400 mt-6 max-w-xs">Tap to pair anonymously with someone facing a craving right now.</p>
         </div>
 
-        <!-- State 2: Waiting -->
-        <div id="waiting-screen" class="hidden text-center">
-            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-400 mx-auto mb-4"></div>
-            <p class="text-sm font-semibold">Finding you a Quit Buddy...</p>
-            <p class="text-xs text-slate-500 mt-2">Hang tight! Deep breaths.</p>
+        <!-- State 2: Waiting + Breathing Pacer -->
+        <div id="waiting-screen" class="hidden text-center flex flex-col items-center">
+            <div class="w-32 h-32 rounded-full bg-teal-500/20 border-2 border-teal-400 breathe-animation flex items-center justify-center mb-6">
+                <span class="text-xs font-semibold text-teal-300" id="breathe-text">Inhale...</span>
+            </div>
+            <p class="text-sm font-semibold text-slate-200">Finding you a QuitBuddy...</p>
+            <p class="text-xs text-slate-400 mt-1">Follow the breathing circle while in queue.</p>
         </div>
 
         <!-- State 3: Active Anonymous Chat -->
-        <div id="chat-screen" class="hidden w-full max-w-md bg-slate-800 rounded-xl p-4 flex flex-col h-[60vh] border border-slate-700">
-            <div class="flex justify-between items-center pb-2 border-b border-slate-700 text-xs text-teal-400 font-bold">
-                <span>🟢 Connected to Buddy</span>
-                <span id="timer">05:00</span>
+        <div id="chat-screen" class="hidden w-full max-w-md bg-slate-800 rounded-2xl p-4 flex flex-col h-[60vh] border border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-700 text-xs font-bold">
+                <span class="text-emerald-400 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    Connected to Buddy
+                </span>
+                <span id="timer" class="bg-slate-700 text-teal-300 px-2 py-1 rounded-md font-mono text-sm">05:00</span>
             </div>
-            <div id="messages" class="flex-1 overflow-y-auto my-2 space-y-2 text-sm"></div>
-            <div class="flex gap-2">
-                <input id="msg-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none">
-                <button id="send-btn" class="bg-teal-500 text-slate-900 font-bold px-4 py-2 rounded-lg text-sm">Send</button>
+            <div id="messages" class="flex-1 overflow-y-auto my-3 space-y-2 text-sm pr-1"></div>
+            <div class="flex gap-2 pt-2 border-t border-slate-700">
+                <input id="msg-input" type="text" placeholder="Type a message..." class="flex-1 bg-slate-700 text-white px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+                <button id="send-btn" class="bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold px-4 py-2 rounded-xl text-sm transition-all">Send</button>
             </div>
         </div>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="text-center text-[10px] text-slate-600">
-        100% Anonymous • Auto-deletes after 5 minutes
+    <!-- Footer & Legal Disclaimer -->
+    <footer class="text-center text-[10px] text-slate-500 max-w-sm mx-auto space-y-1">
+        <p>100% Anonymous • Chats auto-delete after 5 minutes</p>
+        <p class="text-slate-600">Disclaimer: For peer support and informational use only. Not a substitute for professional medical advice.</p>
     </footer>
 
     <script>
         const socket = io();
         let currentRoom = null;
 
+        // Live user count
+        socket.on('online_count', (count) => {
+            document.getElementById('online-users').innerText = `${count} ${count === 1 ? 'user' : 'users'} online`;
+        });
+
         document.getElementById('panic-btn').onclick = () => {
             document.getElementById('idle-screen').classList.add('hidden');
             document.getElementById('waiting-screen').classList.remove('hidden');
             socket.emit('find_buddy');
+            startBreathingGuide();
         };
-
-        socket.on('waiting', () => {
-            // Stay on waiting screen
-        });
 
         socket.on('matched', (data) => {
             currentRoom = data.roomId;
@@ -77,23 +101,25 @@
         });
 
         document.getElementById('send-btn').onclick = sendMessage;
+        document.getElementById('msg-input').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+
         function sendMessage() {
             const input = document.getElementById('msg-input');
             if (input.value.trim() && currentRoom) {
-                appendMsg('You: ' + input.value, 'text-teal-300 text-right');
+                appendMsg('You: ' + input.value, 'text-teal-300 text-right bg-teal-950/40 border border-teal-800/40 ml-auto max-w-[80%]');
                 socket.emit('send_message', { roomId: currentRoom, message: input.value });
                 input.value = '';
             }
         }
 
         socket.on('receive_message', (msg) => {
-            appendMsg('Buddy: ' + msg, 'text-slate-200 text-left');
+            appendMsg('Buddy: ' + msg, 'text-slate-200 text-left bg-slate-700/60 border border-slate-600/40 mr-auto max-w-[80%]');
         });
 
         function appendMsg(msg, style) {
             const box = document.getElementById('messages');
-            const p = document.createElement('p');
-            p.className = style + ' bg-slate-700/50 p-2 rounded-lg';
+            const p = document.createElement('div');
+            p.className = style + ' p-2.5 rounded-xl text-xs font-medium my-1';
             p.innerText = msg;
             box.appendChild(p);
             box.scrollTop = box.scrollHeight;
@@ -113,6 +139,16 @@
                     location.reload();
                 }
             }, 1000);
+        }
+
+        function startBreathingGuide() {
+            const txt = document.getElementById('breathe-text');
+            let phase = 0;
+            setInterval(() => {
+                if (phase === 0) { txt.innerText = "Inhale..."; phase = 1; }
+                else if (phase === 1) { txt.innerText = "Hold..."; phase = 2; }
+                else { txt.innerText = "Exhale..."; phase = 0; }
+            }, 2600);
         }
     </script>
 </body>
